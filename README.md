@@ -26,6 +26,8 @@ Not only is jq a far more appropriate tool to work with JSON in pipelines and in
 
 Here's an example of using the built-in jq feature in the GitHub CLI. First, this command will return a JSON value that is very large and complex (an array of objects, each one representing the intricate details of an issue, all from the specified repository):
 
+> A "JSON value" is any value or construct that is valid JSON. This can be a simple double quoted string, a number, a boolean, the null value, or an array (` [...] `) or object (`{ ... }`) containing any of these values or constructs. So for example, all of these are valid JSON values: `"hello world"`, `42`, `true`, `null`, `[1, 2, "three"]`, `{"ID": 4711}`.
+
 ```shell
 gh api repos/qmacro-org/url-notes/issues
 ```
@@ -46,5 +48,7 @@ A Brief Introduction of ActivityPub: The Future of Social Networks | HackerNoon
 Picat is my favorite new toolbox language • Buttondown
 Conventional Comments
 How many ways can you slice a URL and name the pieces? - Tantek
-[...]
 ```
+
+> The [url-notes](https://github.com/qmacro-org/url-notes) repo is where I collect my 'to-read' items, make notes on them, and [publish any such notes](https://github.com/qmacro-org/url-notes/blob/main/.github/workflows/toot-url-note.yml) when I close the issue representing the item. There's even a [feed](https://raw.githubusercontent.com/qmacro-org/url-notes/main/feed.xml) maintained, via a [jq script](https://github.com/qmacro-org/url-notes/blob/main/genfeed.jq).
+
