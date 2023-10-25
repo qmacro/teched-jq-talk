@@ -33,7 +33,7 @@ gh api repos/qmacro-org/url-notes/issues
 Adding a jq expression via the `--jq` flag here allows us, for example, to ask for just the issue titles:
 
 ```shell
-; gh api repos/qmacro-org/url-notes/issues --jq '.[].title'
+gh api repos/qmacro-org/url-notes/issues --jq '.[].title'
 ```
 
 This produces:
