@@ -50,7 +50,6 @@ Conventional Comments
 How many ways can you slice a URL and name the pieces? - Tantek
 ```
 
-Note that gh effectively executes your jq expression in the context of what is jq's "raw output" mode, where strings are emitted without the enclosing double-quotes. In other words, raw as in "not valid JSON". This is why the strings output here are not enclosed.
+Note that gh effectively executes your jq expression in the context of what is jq's "raw output" mode, where strings are emitted without the enclosing double-quotes. In other words, raw as in "not valid JSON". This is why the strings that are produced here are not enclosed.
 
 > The [url-notes](https://github.com/qmacro-org/url-notes) repo is where I collect my 'to-read' items, make notes on them, and [publish any such notes](https://github.com/qmacro-org/url-notes/blob/main/.github/workflows/toot-url-note.yml) when I close the issue representing the item. There's even a [feed](https://raw.githubusercontent.com/qmacro-org/url-notes/main/feed.xml) maintained, via a [jq script](https://github.com/qmacro-org/url-notes/blob/main/genfeed.jq).
-
