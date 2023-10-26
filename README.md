@@ -73,7 +73,7 @@ cf curl /v3/info
 
 The output looks something like this, not particularly readable:
 
-```json
+```text
 {"build":"v32.11.0","cli_version":{"minimum":"","recommended
 ":""},"custom":{},"description":"SAP BTP Cloud Foundry envir
 onment","name":"cf-deployment","version":32,"links":{"self":
