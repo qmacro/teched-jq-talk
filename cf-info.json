@@ -1,0 +1,1 @@
+{"build":"v32.11.0","cli_version":{"minimum":"","recommended":""},"custom":{},"description":"SAP BTP Cloud Foundry environment","name":"cf-deployment","version":32,"links":{"self":{"href":"https://api.cf.eu10.hana.ondemand.com/v3/info"},"support":{"href":""}}}
