@@ -56,7 +56,7 @@ Note that gh effectively executes your jq expression in the context of what is j
 
 ## Using jq
 
-Think of jq as just another command line tool in your toolbox, that can be used neatly in a pipeline, that reads from STDIN, and outputs to STDOUT. And as it does so it will, unless you tell it otherwise, expect to:
+Think of jq as just another command line tool in your toolbox, that can be used neatly in a pipeline, that reads from STDIN, and outputs to STDOUT. And as it does so it will, [unless you tell it otherwise](https://jqlang.github.io/jq/manual/#invoking-jq), expect to:
 
 * read JSON values as input
 * emit JSON values as output
@@ -81,7 +81,7 @@ onment","name":"cf-deployment","version":32,"links":{"self":
 pport":{"href":""}}}
 ```
 
-Often the first expression used by someone new to jq is the [identity filter](https://jqlang.github.io/jq/manual/v1.7/#identity), `.`, on its own. This filter takes its input ... and outputs the very same value. 
+Often the first expression used by someone new to jq is the [identity filter](https://jqlang.github.io/jq/manual/#identity), `.`, on its own. This filter takes its input ... and outputs the very same value. 
 
 Useless? [Far from it](https://en.wikipedia.org/wiki/Identity_function), but that's a discussion from another time.
 
