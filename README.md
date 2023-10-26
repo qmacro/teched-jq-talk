@@ -119,3 +119,46 @@ Much better!
 
 > The jq expression (or program code) is often supplied in single quotes as here (`cf curl /v3/info | jq '.'`). In this particular case, the single quotes could have been omitted (`cf curl /v3/info | jq .`) and indeed the identity function itself (`cf curl /v3/info | jq`), as it is what is executed if nothing is specified. But it's good practice to be explicit, and to always use single quotes.
 
+## Continuing with simple filters
+
+It's simple to get values from JSON, and emit a different JSON structure. Based on the JSON above, here are a few different ways to do that. These examples show both the command entered at the shell prompt (indicated with `;`), and the output.
+
+First, emitting values for a couple of properties:
+
+```shell
+; cf curl /v3/info | jq '.build, .name'
+"v32.11.0"
+"cf-deployment"
+```
+
+Here we emit values for three properties, but enclosed in an array:
+
+```shell
+; cf curl /v3/info | jq '[.build, .version, .description]'
+[
+  "v32.11.0",
+  32,
+  "SAP BTP Cloud Foundry environment"
+]
+```
+
+We can provide default values for when there is none:
+
+```shell
+; cf curl /v3/info \
+  | jq '.links.docu.href // "https://help.sap.com/docs/btp/sap-business-technology-platform/"'
+"https://help.sap.com/docs/btp/sap-business-technology-platform/"
+```
+
+Introspection is also possible:
+
+```shell
+; cf curl /v3/info | jq '.cli_version | keys'
+[
+  "minimum",
+  "recommended"
+]
+```
+
+
+
