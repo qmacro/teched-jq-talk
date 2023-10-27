@@ -4,11 +4,11 @@ These are the notes and code snippets relating to a Community Talk at SAP TechEd
 
 ## Introduction
 
-JSON is everywhere. Configuration, output from countless tools & APIs, and more. It's a well defined and well understood data interchange format, with a limited number of valid types and values (described in [Introducing JSON](https://www.json.org/json-en.html)), and in particular the `object` and `array` types in combination make it easy to represent both simple and complex data structures.
+JSON is everywhere. Configuration, output from countless tools & APIs, and more. It's a well defined and well understood data interchange format, with a small but perfectly formed number of valid types and values (described in [Introducing JSON](https://www.json.org/json-en.html)), and in particular the `object` and `array` types in combination make it easy to represent both simple and complex data structures.
 
 Not only that, but it's supported by many systems and languages, either natively or by means of libraries.
 
-While it's straightforward to parse JSON in a script written in the language of your choice, there's a lot of costly ceremony getting the JSON to the script.
+While it's straightforward to parse JSON in a script written in the language of your choice, there's a lot of costly ceremony getting the JSON into the script.
 
 Typically one might retrieve the JSON first and write it to a file. And then in a second step one would run the script to read in the file and parse the contents.
 
@@ -19,14 +19,17 @@ Instead, why not use a tool that is:
 * dedicated to parsing and manipulating JSON
 * ready to be used in a pipeline, naturally reading from STDIN and writing to STDOUT
 * simple to get started with
+* capable enough to deal with anything you might need to do
 
 This tool, this language, is [jq](https://jqlang.github.io/jq/). It's described as "a lightweight and flexible command-line JSON processor" but in reality it's actually a full blown Turing-complete functional language with an emphasis on streams.
 
-Not only is jq a far more appropriate tool to work with JSON in pipelines and in general, it's so pervasive that it's even built into some other tools, to provide a convenient way of controlling the output. The [GitHub CLI](https://cli.github.com/) is one example (see [gh formatting](https://cli.github.com/manual/gh_help_formatting) for details).
+Not only is jq a far more appropriate tool to work with JSON in pipelines and in general, it's so pervasive that it's even built into some other tools, to provide a convenient way of controlling the output.
+
+The [GitHub CLI](https://cli.github.com/) is one example (see [gh formatting](https://cli.github.com/manual/gh_help_formatting) for details).
 
 Here's an example of using the built-in jq feature in the GitHub CLI. First, this command will return a JSON value that is very large and complex (an array of objects, each one representing the intricate details of an issue, all from the specified repository):
 
-> A "JSON value" is any value or construct that is valid JSON. This can be a simple double quoted string, a number, a boolean, the null value, or an array (` [...] `) or object (`{ ... }`) containing any of these values or constructs. So for example, all of these are valid JSON values: `"hello world"`, `42`, `true`, `null`, `[1, 2, "three"]`, `{"ID": 4711}`.
+> A "JSON value" is any value or construct that is valid JSON. This can be a simple double quoted string, a number, a boolean, the null value, or an array (` [...] `) or object (`{ ... }`) containing any of these values or constructs. So for example, all of these are valid JSON values: `"hello world"`, `42`, `true`, `null`, `[1, 2, "three"]`, `{"ID": "C11", "fib": [1, 1, 2, 3, 5, 8]}`.
 
 ```shell
 gh api repos/qmacro-org/url-notes/issues
@@ -53,6 +56,52 @@ How many ways can you slice a URL and name the pieces? - Tantek
 Note that gh effectively executes your jq expression in the context of what is jq's "raw output" mode, where strings are emitted without the enclosing double-quotes. In other words, raw as in "not valid JSON". This is why the strings that are produced here are not enclosed.
 
 > The [url-notes](https://github.com/qmacro-org/url-notes) repo is where I collect my 'to-read' items, make notes on them, and [publish any such notes](https://github.com/qmacro-org/url-notes/blob/main/.github/workflows/toot-url-note.yml) when I close the issue representing the item. There's even a [feed](https://raw.githubusercontent.com/qmacro-org/url-notes/main/feed.xml) maintained, via a [jq script](https://github.com/qmacro-org/url-notes/blob/main/genfeed.jq).
+
+### A small digression on streaming and generators
+
+It might help at this point already to jump into a core aspect of what's really at the heart of jq, and even this simple example gives us that opportunity.
+
+To understand what is meant (in part) by the reference to jq as having a focus on streaming, consider the jq expression used in this example: `.[].title`. This is in fact shorthand, or idiomatic, for the more verbose `.[] | .["title"]`. Let's briefly consider what happens here.
+
+We start with the [array/object value iterator](https://jqlang.github.io/jq/manual/#array-object-value-iterator) `.[]`. Think of this as an extreme form of something like `.[1]` which in turn you can think of as:
+
+* `.`: the current value at this point in the stream (an array, for example)
+* `[1]`: the element of that array with index `1` (i.e. the second element)
+
+So it sort of fits to think of `.[]` as "all elements". The interesting thing about this mechanism is that (a) it also works on objects (giving all the values of the object), and (b) it is a generator, i.e. emits multiple values, effectively causing a bifurcation of the value stream.
+
+If the JSON coming into `.[]|.["title"]` were as follows:
+
+```json
+[
+    {"title": "A"},
+    {"title": "B"},
+    {"title": "C"}
+]
+```
+
+and we allow ourselves a little artistic licence to be over effusive with the expression so that it becomes `. | .[] | .["title"]` (still effectively the same as `.[].title`), we can visualise what happens:
+
+```text
+          .        | .[]                  | .["title"]
+
+[                     +--> {"title": "A"}   ---> "A" 
+    {"title": "A"},   |
+    {"title": "B"}, --+--> {"title": "B"}   ---> "B"
+    {"title": "C"}    |
+]                     +--> {"title": "C"}   ---> "C"
+```
+
+Being a generator, `.[]` emits multiple values, initiating multiple parallel streams that flow downstream, i.e. through the pipe operator that follows it. 
+
+Sure enough, this is what happens:
+
+```shell
+; echo '[{"title":"A"},{"title":"B"},{"title":"C"}]' | jq '. | .[] | .["title"]'
+"A"
+"B"
+"C"
+```
 
 ## Using jq
 
@@ -131,6 +180,8 @@ First, emitting values for a couple of properties:
 "cf-deployment"
 ```
 
+> Think of `.build` as `.` plus `build` i.e. whatever the identity function emits (all of the JSON, at this stage) then the specification for the `build` property. It's shorthand for `.["build"]`.
+
 Here we emit values for three properties, but enclosed in an array:
 
 ```shell
@@ -158,6 +209,28 @@ Introspection is also possible:
   "minimum",
   "recommended"
 ]
+```
+
+It's easy to create a reduced object with just a couple of properties:
+
+```shell
+; cf curl /v3/info | jq '{ build, version }'
+{
+  "build": "v32.11.0",
+  "version": 32
+}
+```
+
+> Note the shorthand of just using the property names here, rather than 
+
+We can also add new properties. Extending the previous example:
+
+```shell
+; cf curl /v3/info | jq '{ build, version, answer:  }'
+{
+  "build": "v32.11.0",
+  "version": 32
+}
 ```
 
 
