@@ -83,13 +83,13 @@ If the JSON coming into `.[]|.["title"]` were as follows:
 and we allow ourselves a little artistic licence to be over effusive with the expression so that it becomes `. | .[] | .["title"]` (still effectively the same as `.[].title`), we can visualise what happens:
 
 ```text
-          .        | .[]                  | .["title"]
+          .          |   .[]                    |   .["title"]
 
-[                     +--> {"title": "A"}   ---> "A" 
-    {"title": "A"},   |
-    {"title": "B"}, --+--> {"title": "B"}   ---> "B"
-    {"title": "C"}    |
-]                     +--> {"title": "C"}   ---> "C"
+[                         +--> {"title": "A"}       ---> "A" 
+    {"title": "A"},       |
+    {"title": "B"},     --+--> {"title": "B"}       ---> "B"
+    {"title": "C"}        |
+]                         +--> {"title": "C"}       ---> "C"
 ```
 
 Being a generator, `.[]` emits multiple values, initiating multiple parallel streams that flow downstream, i.e. through the pipe operator that follows it. 
