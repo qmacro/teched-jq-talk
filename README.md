@@ -221,15 +221,16 @@ It's easy to create a reduced object with just a couple of properties:
 }
 ```
 
-> Note the shorthand of just using the property names here, rather than 
+> Note the shorthand of just using the property names here, rather than what you might expect to have to write, i.e. `{ "build": .build, "version": .version }`. Note also that in the recently released version 1.7 of jq, there's [pick](https://jqlang.github.io/jq/manual/v1.7/#pick), a new builtin that will emit a projection of the input object or array - see the language changes section in the [jq 1.7 release notes](https://github.com/jqlang/jq/releases/tag/jq-1.7).
 
 We can also add new properties. Extending the previous example:
 
 ```shell
-; cf curl /v3/info | jq '{ build, version, answer:  }'
+; cf curl /v3/info | jq '{ build, version, answer: .version + 10 }'
 {
   "build": "v32.11.0",
-  "version": 32
+  "version": 32,
+  "answer": 42
 }
 ```
 
