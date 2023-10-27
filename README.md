@@ -234,5 +234,71 @@ We can also add new properties. Extending the previous example:
 }
 ```
 
+## More constructs
 
+Let's move on to some more useful constructs, so that you know how to bring conditional processing into the mix, and filter out data based on comparisons. For this, we'll look at some different data. 
 
+The [SAP BTP Command Line Interface (btp CLI)](https://cpcli.cf.eu10.hana.ondemand.com/) is a great CLI program that anyone working with the SAP Business Technology Platform needs in their toolbox. It allows the reporting, inspection and management of resources on SAP BTP from the comfort of the command line and within scripts. 
+
+> For more on where the btp CLI fits, see [Managing resources on SAP BTP – what tool do I choose?](https://blogs.sap.com/2022/12/12/managing-resources-on-sap-btp-what-tool-do-i-choose/).
+
+The btp CLI can emit for humans, or for machines (or scripts or further processing in a normal UNIX style pipeline). The output format for machines is JSON, and is requested with the option `--format json`.
+
+Taking the information about geographical regions (datacentre locations), we can ask for that information and get human readable output like this:
+
+```shell
+; btp list accounts/available-region
+
+Showing available regions for global account 275320f9-4c26-4622-8728-b6f519607542:
+
+region   data center   environment    provider
+ap21     cf-ap21       cloudfoundry   AZURE
+br1      neo-br1       neo            SAP
+cn1      neo-cn1       neo            SAP
+us30     cf-us30       cloudfoundry   GCP
+...
+```
+
+Adding `--format json` like this:
+
+```shell
+btp --format json list accounts/available-region
+```
+
+gives us something we can dig into programmatically (output here deliberately limited to the first two regions, for brevity):
+
+```json
+{
+  "datacenters": [
+    {
+      "name": "cf-ap21",
+      "displayName": "Singapore - Azure",
+      "region": "ap21",
+      "environment": "cloudfoundry",
+      "iaasProvider": "AZURE",
+      "supportsTrial": true,
+      "provisioningServiceUrl": "https://provisioning-service.cfapps.ap21.hana.ondemand.com",
+      "saasRegistryServiceUrl": "https://saas-manager.cfapps.ap21.hana.ondemand.com",
+      "domain": "ap21.hana.ondemand.com",
+      "isMainDataCenter": true,
+      "geoAccess": "BACKWARD_COMPLIANT_EU_ACCESS",
+      "restricted": false
+    },
+    {
+      "name": "neo-br1",
+      "displayName": "Brazil (São Paulo)",
+      "region": "br1",
+      "environment": "neo",
+      "iaasProvider": "SAP",
+      "supportsTrial": false,
+      "provisioningServiceUrl": "https://cisservices.br1.hana.ondemand.com/com.sap.core.commercial.service.web",
+      "domain": "br1.hana.ondemand.com",
+      "isMainDataCenter": true,
+      "geoAccess": "STANDARD",
+      "restricted": false
+    }
+  ]
+}
+```
+
+A larger version of this JSON data is available in the file [available-regions.json](./available-regions.json) and is what we'll use for the following examples.
