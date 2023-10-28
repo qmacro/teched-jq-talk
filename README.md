@@ -248,7 +248,7 @@ Let's move on to some more useful constructs, so that you know how to bring cond
 
 The [SAP BTP Command Line Interface (btp CLI)](https://cpcli.cf.eu10.hana.ondemand.com/) is a great CLI program that anyone working with the SAP Business Technology Platform needs in their toolbox. It allows the reporting, inspection and management of resources on SAP BTP from the comfort of the command line and within scripts. 
 
-> For more on where the btp CLI fits, see [Managing resources on SAP BTP – what tool do I choose?](https://blogs.sap.com/2022/12/12/managing-resources-on-sap-btp-what-tool-do-i-choose/).
+> See [Managing resources on SAP BTP – what tool do I choose?](https://blogs.sap.com/2022/12/12/managing-resources-on-sap-btp-what-tool-do-i-choose/) for more information on where the btp CLI fits in.
 
 The btp CLI can emit for humans, or for machines (or scripts or further processing in a normal UNIX style pipeline). The output format for machines is JSON, and is requested with the option `--format json`.
 
@@ -311,7 +311,7 @@ gives us something we can dig into programmatically (output here deliberately li
 
 A larger version of this JSON data is available in the file [available-regions.json](./available-regions.json) and is what we'll use for the following examples (for speed and minimal load on the API endpoint that the btp CLI is calling for us).
 
-Before diving in, let's have a look at the data from a jq perspective first.
+Before diving in, let's have a look at the shape of the data itself.
 
 What's the actual (outermost) JSON value here?
 
@@ -320,9 +320,9 @@ What's the actual (outermost) JSON value here?
 "object"
 ```
 
-> Note that even here, jq endeavours to emit valid JSON, so we get `"object"` rather than just `object`. And for more understanding that only comes from [staring](https://qmacro.org/blog/posts/2017/02/19/the-beauty-of-recursion-and-list-machinery/#initialrecognition), see the later digression on JSON values and streaming for something to think about in relation to this simple example.
+> Note that even here, jq endeavours to emit valid JSON, so we get `"object"` rather than just `object`. And for more understanding that only comes from [staring](https://qmacro.org/blog/posts/2017/02/19/the-beauty-of-recursion-and-list-machinery/#initialrecognition), see the later [digression on JSON values and streaming](#a-digression-on-json-values-and-streaming) for something to think about in relation to this simple example.
 
-OK, so let's look at the properties (keys) of that object.
+Next, let's look at the properties (keys) of that object.
 
 ```shell
 ; jq 'keys' available-regions.json
@@ -340,7 +340,7 @@ OK so we have an object with a single property, what is its type?
 
 It's an array (which we can confirm visually by looking at the JSON shown earlier).
 
-In fact we could do this in one go with the [map_values](https://jqlang.github.io/jq/manual/#map-map_values) function, which can operate on objects or arrays. In this case, we'll get it to operate on the entire JSON value, which is an object as we've already found out.
+In fact we could do this in one go with the [map_values](https://jqlang.github.io/jq/manual/#map-map_values) function, which can operate on objects or arrays. In this case, we'll get it to operate on the entire JSON value, which is an object as we've already determined.
 
 ```shell
 ; jq 'map_values(type)' available-regions.json
@@ -349,9 +349,7 @@ In fact we could do this in one go with the [map_values](https://jqlang.github.i
 }
 ```
 
-Nice! We've just called our first function, which expects a single argument, which is an expression that is invoked upon each of the values (the semantics of the "map" part of this function name are strong and relevant here).
-
-> See [FOFP 1.4 A different approach with map](https://qmacro.org/blog/posts/2016/05/03/fofp-1.4-a-different-approach-with-map/) for more on map.
+Nice! We've just called our first function, which expects a single argument, which is an expression that is invoked upon each of the values (the semantics of the "map" part of this function name are strong and relevant here; see [FOFP 1.4 A different approach with map](https://qmacro.org/blog/posts/2016/05/03/fofp-1.4-a-different-approach-with-map/) for more on map).
 
 > In fact, if you were typing this into the filter box in ijq, and had got to entering just the name of the function `map_values`, you might have seen this in the error box:
 > 
@@ -359,7 +357,7 @@ Nice! We've just called our first function, which expects a single argument, whi
 > 
 > This means "you're invoking `map_values` but passing nothing to it, and there isn't a version of `map_values` that takes zero arguments" (that's the `map_values/0` reference). The function exists as `map_values/1`. It's useful to recognise and be comfortable with this nomenclature, as it's used a lot in the jq world.
 
-The next and subsequent examples will just show the jq expressions, rather than within the context of the pipeline or within jq. So to execute what you see yourself, do this:
+The next and subsequent examples will just show the jq expressions, rather than within the context of the pipeline or within ijq. So to execute what you see yourself, do this:
 
 ```shell
 jq '<the jq expression shown>' available-regions.json
@@ -369,7 +367,9 @@ or use ijq and type them into the filter input box.
 
 ### A digression on JSON values and streaming
 
-Earlier in this section, we asked the question (of the JSON in [available-regions.json](./available-regions.json)) "what's the actual (outermost) JSON value here?". We asked it like this: `jq 'type' available-regions.json` and got the answer: `"object"`. There was an assumption implied in this simple example question, that jq is only happy processing a file of JSON where that JSON is effectively a single value or type at the outermost level. And this is true of the data, which starts like this:
+Earlier in this section, we asked the question (of the JSON in [available-regions.json](./available-regions.json)) "what's the actual (outermost) JSON value here?". We asked it like this: `jq 'type' available-regions.json` and got the answer: `"object"`. There was an assumption implied in this simple question that jq is only happy processing JSON input where that JSON is effectively a single value or type at the outermost level.
+
+And as far as the data we have is concerned, that assumption holds true, in that there's a single outermost element, which is an object:
 
 ```json
 {
@@ -377,7 +377,7 @@ Earlier in this section, we asked the question (of the JSON in [available-region
 }
 ```
 
-So the outermost element is indeed an object. But what would happen if we had data that looked like this:
+But what would happen if our data looked like this:
 
 ```json
 { "day": "Monday" }
@@ -385,7 +385,7 @@ So the outermost element is indeed an object. But what would happen if we had da
 { "day": "Wednesday" }
 ```
 
-That's not _a_ valid JSON value, that's a sequence of _three_ valid JSON values (and there's no "outermost" element to speak of).
+That's not _a_ valid JSON value, that's a sequence of _three_ valid JSON values (and there's no "outermost" element of which to speak).
 
 What happens if we pass [a file with this exact content](./three-values.json)?
 
@@ -396,16 +396,16 @@ What happens if we pass [a file with this exact content](./three-values.json)?
 "object"
 ```
 
-This is the elegance of the streaming nature of jq. It will invoke the filter (the expression we pass in single quotes -- just `type` in this example -- or in a file with `--from-file`) on each of the JSON values it sees.
+This is the elegance of the streaming nature of jq. It will invoke the filter (the expression we pass in single quotes -- i.e. `type` in this example -- or in a file with `--from-file`) on each of the JSON values it sees.
 
-And for a digression upon a digression - what if you wanted to process these three values (the objects for Monday, Tuesday and Wednesday) in the context of a single jq filter, i.e. have them all read in and processed together? That's what the `--slurp` (`-s`) option does for us. Observe:
+And for a digression upon a digression - what if you wanted to process these three discrete JSON values (the objects for Monday, Tuesday and Wednesday) in the context of a single execution of your jq expression, i.e. have them all read in and processed together? That's what the `--slurp` (`-s`) option does for us. Observe:
 
 ```shell
 ; jq --slurp 'type' three-values.json
 "array"
 ```
 
-Here's what the jq manual says about this option: "Instead of running the filter for each JSON object in the input, read the entire input stream into a large array and run the filter just once.". To make sure we understand what this does exactly, we can just use the identity function:
+Here's what the jq manual says about this option: "Instead of running the filter for each JSON object in the input, read the entire input stream into a large array and run the filter just once". To make sure we understand what this does exactly, we can just use the identity function:
 
 ```shell
 ; jq --slurp '.' three-values.json
@@ -422,5 +422,23 @@ Here's what the jq manual says about this option: "Instead of running the filter
 ]
 ```
 
+You can see that slurping encloses all the JSON values in an single outermost array.
+
 > The whitespace is different merely because of how jq's pretty-printing works. By the way, there's also a `--compact-output` (`-c`) option, that if added to the invocation above, will produce this instead: `[{"day":"Monday"},{"day":"Tuesday"},{"day":"Wednesday"}]`.
 
+One more thing - slurp mode doesn't require the individual JSON values to be of the same type or shape:
+
+```shell
+; echo -e '{"answer": 42}\nfalse\n[1,2,3]' | jq --slurp '.'
+[
+  {
+    "answer": 42
+  },
+  false,
+  [
+    1,
+    2,
+    3
+  ]
+]
+```
