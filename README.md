@@ -320,6 +320,8 @@ What's the actual (outermost) JSON value here?
 "object"
 ```
 
+> Note that even here, jq endeavours to emit valid JSON, so we get `"object"` rather than just `object`. And for more understanding that only comes from [staring](https://qmacro.org/blog/posts/2017/02/19/the-beauty-of-recursion-and-list-machinery/#initialrecognition), see the later digression on JSON values and streaming for something to think about in relation to this simple example.
+
 OK, so let's look at the properties (keys) of that object.
 
 ```shell
@@ -365,4 +367,60 @@ jq '<the jq expression shown>' available-regions.json
 
 or use ijq and type them into the filter input box.
 
+### A digression on JSON values and streaming
+
+Earlier in this section, we asked the question (of the JSON in [available-regions.json](./available-regions.json)) "what's the actual (outermost) JSON value here?". We asked it like this: `jq 'type' available-regions.json` and got the answer: `"object"`. There was an assumption implied in this simple example question, that jq is only happy processing a file of JSON where that JSON is effectively a single value or type at the outermost level. And this is true of the data, which starts like this:
+
+```json
+{
+    "datacenters": []
+}
+```
+
+So the outermost element is indeed an object. But what would happen if we had data that looked like this:
+
+```json
+{ "day": "Monday" }
+{ "day": "Tuesday" }
+{ "day": "Wednesday" }
+```
+
+That's not _a_ valid JSON value, that's a sequence of _three_ valid JSON values (and there's no "outermost" element to speak of).
+
+What happens if we pass [a file with this exact content](./three-values.json)?
+
+```shell
+; jq 'type' three-values.json
+"object"
+"object"
+"object"
+```
+
+This is the elegance of the streaming nature of jq. It will invoke the filter (the expression we pass in single quotes -- just `type` in this example -- or in a file with `--from-file`) on each of the JSON values it sees.
+
+And for a digression upon a digression - what if you wanted to process these three values (the objects for Monday, Tuesday and Wednesday) in the context of a single jq filter, i.e. have them all read in and processed together? That's what the `--slurp` (`-s`) option does for us. Observe:
+
+```shell
+; jq --slurp 'type' three-values.json
+"array"
+```
+
+Here's what the jq manual says about this option: "Instead of running the filter for each JSON object in the input, read the entire input stream into a large array and run the filter just once.". To make sure we understand what this does exactly, we can just use the identity function:
+
+```shell
+; jq --slurp '.' three-values.json
+[
+  {
+    "day": "Monday"
+  },
+  {
+    "day": "Tuesday"
+  },
+  {
+    "day": "Wednesday"
+  }
+]
+```
+
+> The whitespace is different merely because of how jq's pretty-printing works. By the way, there's also a `--compact-output` (`-c`) option, that if added to the invocation above, will produce this instead: `[{"day":"Monday"},{"day":"Tuesday"},{"day":"Wednesday"}]`.
 
