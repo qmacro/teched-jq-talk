@@ -166,7 +166,7 @@ What we see now is:
 
 Much better!
 
-> The jq expression (or program code) is often supplied in single quotes as here (`cf curl /v3/info | jq '.'`). In this particular case, the single quotes could have been omitted (`cf curl /v3/info | jq .`) and indeed the identity function itself (`cf curl /v3/info | jq`), as it is what is executed if nothing is specified. But it's good practice to be explicit, and to always use single quotes.
+> The jq expression (or script) is often supplied in single quotes as here (`cf curl /v3/info | jq '.'`). In this particular case, the single quotes could have been omitted (`cf curl /v3/info | jq .`) and indeed the identity function itself (`cf curl /v3/info | jq`), as it is what is executed if nothing is specified. But it's good practice to be explicit, and to always use single quotes.
 
 ## Continuing with simple filters
 
@@ -233,6 +233,14 @@ We can also add new properties. Extending the previous example:
   "answer": 42
 }
 ```
+
+## Interactive jq
+
+For subsequent examples, I'd recommend you use [ijq](https://sr.ht/~gpanders/ijq/), which brings a clean and simple UI to your jq explorations. Two main windows are displayed, with the source JSON on the left ("Input"), and whatever is emitted from your jq expression on the right ("Output"). At the bottom is where you edit your jq expression ("Filter"), along with a space to display any error messages ("Error").
+
+![an interactive jq session in action](https://git.sr.ht/~gpanders/ijq/blob/HEAD/demo/ijq.gif)
+
+You can of course continue to use jq on the command line, or even write your jq expression or program in a file and execute it with the `--from-file` (`-f`) option.
 
 ## More constructs
 
@@ -301,4 +309,60 @@ gives us something we can dig into programmatically (output here deliberately li
 }
 ```
 
-A larger version of this JSON data is available in the file [available-regions.json](./available-regions.json) and is what we'll use for the following examples.
+A larger version of this JSON data is available in the file [available-regions.json](./available-regions.json) and is what we'll use for the following examples (for speed and minimal load on the API endpoint that the btp CLI is calling for us).
+
+Before diving in, let's have a look at the data from a jq perspective first.
+
+What's the actual (outermost) JSON value here?
+
+```shell
+; jq 'type' available-regions.json
+"object"
+```
+
+OK, so let's look at the properties (keys) of that object.
+
+```shell
+; jq 'keys' available-regions.json
+[
+  "datacenters"
+]
+```
+
+OK so we have an object with a single property, what is its type?
+
+```shell
+; jq '.datacenters | type' available-regions.json
+"array"
+```
+
+It's an array (which we can confirm visually by looking at the JSON shown earlier).
+
+In fact we could do this in one go with the [map_values](https://jqlang.github.io/jq/manual/#map-map_values) function, which can operate on objects or arrays. In this case, we'll get it to operate on the entire JSON value, which is an object as we've already found out.
+
+```shell
+; jq 'map_values(type)' available-regions.json
+{
+  "datacenters": "array"
+}
+```
+
+Nice! We've just called our first function, which expects a single argument, which is an expression that is invoked upon each of the values (the semantics of the "map" part of this function name are strong and relevant here).
+
+> See [FOFP 1.4 A different approach with map](https://qmacro.org/blog/posts/2016/05/03/fofp-1.4-a-different-approach-with-map/) for more on map.
+
+> In fact, if you were typing this into the filter box in ijq, and had got to entering just the name of the function `map_values`, you might have seen this in the error box:
+> 
+> "jq: error: map_values/0 is not defined"
+> 
+> This means "you're invoking `map_values` but passing nothing to it, and there isn't a version of `map_values` that takes zero arguments" (that's the `map_values/0` reference). The function exists as `map_values/1`. It's useful to recognise and be comfortable with this nomenclature, as it's used a lot in the jq world.
+
+The next and subsequent examples will just show the jq expressions, rather than within the context of the pipeline or within jq. So to execute what you see yourself, do this:
+
+```shell
+jq '<the jq expression shown>' available-regions.json
+```
+
+or use ijq and type them into the filter input box.
+
+
