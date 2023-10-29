@@ -246,6 +246,8 @@ You can of course continue to use jq on the command line, or even write your jq 
 
 Let's move on to some more useful constructs, so that you know how to bring conditional processing into the mix, and filter out data based on comparisons. For this, we'll look at some different data. 
 
+### Region data via the btp CLI
+
 The [SAP BTP Command Line Interface (btp CLI)](https://cpcli.cf.eu10.hana.ondemand.com/) is a great CLI program that anyone working with the SAP Business Technology Platform needs in their toolbox. It allows the reporting, inspection and management of resources on SAP BTP from the comfort of the command line and within scripts. 
 
 > See [Managing resources on SAP BTP – what tool do I choose?](https://blogs.sap.com/2022/12/12/managing-resources-on-sap-btp-what-tool-do-i-choose/) for more information on where the btp CLI fits in.
@@ -311,6 +313,8 @@ gives us something we can dig into programmatically (output here deliberately li
 
 A larger version of this JSON data is available in the file [available-regions.json](./available-regions.json) and is what we'll use for the following examples (for speed and minimal load on the API endpoint that the btp CLI is calling for us).
 
+### Looking at the shape of the data
+
 Before diving in, let's have a look at the shape of the data itself.
 
 What's the actual (outermost) JSON value here?
@@ -357,13 +361,16 @@ Nice! We've just called our first function, which expects a single argument, whi
 > 
 > This means "you're invoking `map_values` but passing nothing to it, and there isn't a version of `map_values` that takes zero arguments" (that's the `map_values/0` reference). The function exists as `map_values/1`. It's useful to recognise and be comfortable with this nomenclature, as it's used a lot in the jq world.
 
-The next and subsequent examples will just show the jq expressions, rather than within the context of the pipeline or within ijq. So to execute what you see yourself, do this:
+Let's go one small step further now we have some confidence in passing arguments to functions, and do this:
 
 ```shell
-jq '<the jq expression shown>' available-regions.json
+; jq 'map_values("\(type) with \(length) elements")' available-regions.json
+{
+  "datacenters": "array with 33 elements"
+}
 ```
 
-or use ijq and type them into the filter input box.
+This time we're passing a string as the argument to `map_values`. This string has expressions embedded in it via jq's [string interpolation](https://jqlang.github.io/jq/manual/#string-interpolation) feature `\(...)`. One of the expressions embedded is `type` which we've seen before. The other is `length`, another builtin function that [emits the length of various types of value](https://jqlang.github.io/jq/manual/#length). The interesting thing here is perhaps not the string interpolation itself, but what each of `type` and `length` operates upon. As they're in the context of `map_values`, they operate on each of values of the properties in turn, in this case, just the singular `datacenters` property with its array value.
 
 ### A digression on JSON values and streaming
 
@@ -442,3 +449,34 @@ One more thing - slurp mode doesn't require the individual JSON values to be of 
   ]
 ]
 ```
+
+### Trying out some more jq functions
+
+OK, back to the available region data. From a glance at the objects within the array that the `datacenters` property has as its value, we can see that there are different IaaS providers. What are they?
+
+By the way, the next and subsequent examples will just show the jq expressions, rather than within the context of the pipeline or within ijq. So to execute what you see yourself, do this:
+
+```shell
+jq '<the jq expression shown>' available-regions.json
+```
+
+or use ijq and type them into the filter input box.
+
+First, let's just list them all; let's just have the value of the `iaasProvider` property from each of the objects. We already know how to do this:
+
+```jq
+.datacenters[].iaasProvider
+```
+
+This produces a long list that starts like this:
+
+```JSON
+"AZURE"
+"SAP"
+"SAP"
+"GCP"
+"SAP"
+"AWS"
+```
+
+
