@@ -874,6 +874,7 @@ First, the `group_by(.colour)` part creates an array of arrays, with one sub arr
     }
   ]
 ]
+```
 
 Then `map` is run over this array of arrays, evaluating this expression:
 
