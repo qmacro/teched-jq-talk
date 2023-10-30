@@ -370,13 +370,13 @@ Let's go one small step further now we have some confidence in passing arguments
 }
 ```
 
-This time we're passing a string as the argument to `map_values`. This string has expressions embedded in it via jq's [string interpolation](https://jqlang.github.io/jq/manual/#string-interpolation) feature `\(...)`. One of the expressions embedded is `type` which we've seen before. The other is `length`, another builtin function that [emits the length of various types of value](https://jqlang.github.io/jq/manual/#length). The interesting thing here is perhaps not the string interpolation itself, but what each of `type` and `length` operates upon. As they're in the context of `map_values`, they operate on each of values of the properties in turn, in this case, just the singular `datacenters` property with its array value.
+This time we're passing a string as the argument to `map_values`. This string has expressions embedded in it via jq's [string interpolation](https://jqlang.github.io/jq/manual/#string-interpolation) feature `\(...)`. One of the expressions embedded is `type` which we've seen before. The other is `length`, another builtin function that [emits the length of various types of value](https://jqlang.github.io/jq/manual/#length). The interesting thing here is perhaps not the string interpolation itself, but what each of `type` and `length` operates upon. As they're in the context of `map_values`, they operate on each of the values of the properties in turn, in this case, just the singular `datacenters` property with its array value.
 
 ### A digression on JSON values and streaming
 
 Earlier in this section, we asked the question (of the JSON in [available-regions.json](./available-regions.json)) "what's the actual (outermost) JSON value here?". We asked it like this: `jq 'type' available-regions.json` and got the answer: `"object"`. There was an assumption implied in this simple question that jq is only happy processing JSON input where that JSON is effectively a single value or type at the outermost level.
 
-And as far as the data we have is concerned, that assumption holds true, in that there's a single outermost element, which is an object:
+And as far as the data we have is concerned, that input context holds true, in that there's a single outermost element, which is an object:
 
 ```json
 {
