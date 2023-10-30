@@ -254,7 +254,7 @@ The [SAP BTP Command Line Interface (btp CLI)](https://cpcli.cf.eu10.hana.ondema
 
 The btp CLI can emit for humans, or for machines (or scripts or further processing in a normal UNIX style pipeline). The output format for machines is JSON, and is requested with the option `--format json`.
 
-Taking the information about geographical regions (datacentre locations), we can ask for that information and get human readable output like this:
+Taking the information about geographical regions (data centre locations), we can ask for that information and get human readable output like this:
 
 ```shell
 ; btp list accounts/available-region
@@ -597,7 +597,7 @@ gives us this:
 "Europe (Frankfurt)"
 ```
 
-Now for a bit of string manipulation, using a regexp-based substitutin, to remove any " - ..." parts:
+Now for a bit of string manipulation, using a regexp-based substitution, to remove any " - ..." parts:
 
 ```jq
 .datacenters[] 
@@ -632,13 +632,283 @@ Great. Again, invoking TMTOWDI, the last part could have been done another way; 
 | first
 ```
 
-As you can guess, [split](https://jqlang.github.io/jq/manual/#split-1), more specifically `split/1`, will create an array of values from a string split on the value given as argument.
+As you can guess, [split](https://jqlang.github.io/jq/manual/#split-1), more specifically `split/1`, will create an array of values from a string split on the value given as argument. And `first` is sort of syntactic sugar for `.[0]`, and far nicer to write and think about.
 
+### Grouping
 
+Related to determining distinct values is the common requirement of organising data into clusters, based on some sort of value.
 
+As the final example using this available region information, let's find what the geographic access looks like across the different locations.
 
+Each object representing a data centre has a `geoAccess` property, and we can see with:
 
+```jq
+.datacenters|map(.geoAccess)|unique
+```
 
+that there are three different values:
 
+```json
+[
+  "BACKWARD_COMPLIANT_EU_ACCESS",
+  "EU_ACCESS",
+  "STANDARD"
+]
+```
 
+So what does the distribution of locations look like across these different access types? For this, the [group_by](https://jqlang.github.io/jq/manual/#group_by) function is useful.
 
+To properly grasp how this works, it's important to be able to think about the shape of the data at the input but more importantly at the output. Let's first take a simpler data example. We have a file [fruit.json](./fruit.json) with a list of JSON values, each one an object:
+
+```json
+{ "name": "apple", "colour": "green" }
+{ "name": "banana", "colour": "yellow" }
+{ "name": "strawberry", "colour": "red" }
+{ "name": "kiwi", "colour": "green" }
+{ "name": "pear", "colour": "green" }
+{ "name": "lemon", "colour": "yellow" }
+```.
+
+> This is the second time we've used data like this. In fact, there's a name for this format, and it's [JSON Lines](https://jsonlines.org/), aka "newline delimited JSON".
+
+So `group_by` takes an array as input, and produces an array of arrays as output, which means we'll have to slurp in the objects (with `--slurp` or `-s`) and then stare at the shape of the output to make sure we're comfortable with it
+
+```shell
+; jq -s 'group_by(.colour)' fruit.json
+[
+  [
+    {
+      "name": "apple",
+      "colour": "green"
+    },
+    {
+      "name": "kiwi",
+      "colour": "green"
+    },
+    {
+      "name": "pear",
+      "colour": "green"
+    }
+  ],
+  [
+    {
+      "name": "strawberry",
+      "colour": "red"
+    }
+  ],
+  [
+    {
+      "name": "banana",
+      "colour": "yellow"
+    },
+    {
+      "name": "lemon",
+      "colour": "yellow"
+    }
+  ]
+]
+```
+
+We can perhaps map the `length` function over the elements of the outermost array that is produced by `group_by` to help our understanding:
+
+```shell
+; jq -s 'group_by(.colour) | map(length)' fruit.json
+[
+  3,
+  1,
+  2
+]
+```
+
+This shows us that the first subarray has 3 elements, the second subarray has 1 element, and the third subarray has 2 elements.
+
+As a question for you to ponder: if we were to nest a `map`, can you understand what happens and explain the output? Like this:
+
+```shell
+; jq -s 'group_by(.colour) | map(map(length))' fruit.json
+jq -s 'group_by(.colour) | map(map(length))' fruit.json
+[
+  [
+    2,
+    2,
+    2
+  ],
+  [
+    2
+  ],
+  [
+    2,
+    2
+  ]
+]
+```
+
+To answer this question, it might help to ask "what are we mapping over?".
+
+Anyway, if we now get back to the available region information, let's perform a similar filter, like this:
+
+```jq
+.datacenters | group_by(.geoAccess)
+```
+
+This gives us a array of arrays too, of course. What if we just want a summary, listing the names of the regions, grouped by the different geographic access types?
+
+```jq
+.datacenters
+| group_by(.geoAccess)
+| map({ (first.geoAccess): map(.name) })
+```
+
+This will give us:
+
+```json
+[
+  {
+    "BACKWARD_COMPLIANT_EU_ACCESS": [
+      "cf-ap21",
+      "cf-eu10",
+      "cf-jp10",
+      "neo-eu2",
+      "neo-eu1",
+      "cf-ap20",
+      "cf-br10",
+      "cf-ap10",
+      "cf-ap12",
+      "cf-ap11",
+      "cf-jp20",
+      "cf-eu20",
+      "cf-us10",
+      "cf-ca10",
+      "cf-us20",
+      "neo-eu3",
+      "cf-us21"
+    ]
+  },
+  {
+    "EU_ACCESS": [
+      "cf-ch20",
+      "cf-eu11"
+    ]
+  },
+  {
+    "STANDARD": [
+      "neo-br1",
+      "neo-cn1",
+      "cf-us30",
+      "neo-ap1",
+      "neo-ca1",
+      "neo-ae1",
+      "neo-us3",
+      "neo-us2",
+      "neo-sa1",
+      "neo-jp1",
+      "cf-eu30",
+      "cf-in30",
+      "neo-us1",
+      "neo-us4"
+    ]
+  }
+]
+```
+
+It's worth unpacking this filter to properly understand what happened here. Let's run the equivalent filter on our fruit data.
+
+```shell
+; jq -s 'group_by(.colour) | map({ (first.colour): map(.name) })' fruit.json
+[
+  {
+    "green": [
+      "apple",
+      "kiwi",
+      "pear"
+    ]
+  },
+  {
+    "red": [
+      "strawberry"
+    ]
+  },
+  {
+    "yellow": [
+      "banana",
+      "lemon"
+    ]
+  }
+]
+```
+
+To work through this filter step by step:
+
+First, the `group_by(.colour)` part creates an array of arrays, with one sub array for each of the list of fruit objects corresponding to a particular colour (we've seen this output before):
+
+```json
+[
+  [
+    {
+      "name": "apple",
+      "colour": "green"
+    },
+    {
+      "name": "kiwi",
+      "colour": "green"
+    },
+    {
+      "name": "pear",
+      "colour": "green"
+    }
+  ],
+  [
+    {
+      "name": "strawberry",
+      "colour": "red"
+    }
+  ],
+  [
+    {
+      "name": "banana",
+      "colour": "yellow"
+    },
+    {
+      "name": "lemon",
+      "colour": "yellow"
+    }
+  ]
+]
+
+Then `map` is run over this array of arrays, evaluating this expression:
+
+```jq
+{ (first.colour): map(.name) }
+```
+
+for each of the sub arrays. Let's take the first sub array and see what this does. Here's that first sub array:
+
+```json
+[
+  {
+    "name": "apple",
+    "colour": "green"
+  },
+  {
+    "name": "kiwi",
+    "colour": "green"
+  },
+  {
+    "name": "pear",
+    "colour": "green"
+  }
+]
+```
+
+We can see from the outermost `{ ... }` ([object construction](https://jqlang.github.io/jq/manual/#object-construction)) of the expression that an object will be emitted. And in fact there will only be a single property and value in this object, the values for which are both calculated:
+
+* the property name is the value of the `colour` property of the `first` element in that sub array; in this case, "green"
+* the property value is an array (produced by `map`) of the values of the `name` property of each of the elements; in this case, "apple", "kiwi" and "pear"
+
+In other words:
+
+```json
+{ "green": ["apple", "kiwi", "pear"] }
+```
+
+Note that we want the expression `first.colour` to be evaluated, so we need to put it in brackets when using it as a property name in object construction, i.e. `(first.colour)`.
