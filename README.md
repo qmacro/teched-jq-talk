@@ -913,3 +913,49 @@ In other words:
 ```
 
 Note that we want the expression `first.colour` to be evaluated, so we need to put it in brackets when using it as a property name in object construction, i.e. `(first.colour)`.
+
+#### Calculations and non-JSON output
+
+To round off, let's grab some classic Northwind product data. From the OData V4 service at [https://services.odata.org/V4/Northwind/](https://services.odata.org/V4/Northwind/), we have the [Products entityset](https://services.odata.org/V4/Northwind/Northwind.svc/Products), which by default is served as `application/json`, saved in a file [northwind-products.json](./northwind-products.json).
+
+To get a feel for the data, let's look at the first couple of entities:
+
+```shell
+; jq '.value[:2]' northwind-products.json
+[
+  {
+    "ProductID": 1,
+    "ProductName": "Chai",
+    "SupplierID": 1,
+    "CategoryID": 1,
+    "QuantityPerUnit": "10 boxes x 20 bags",
+    "UnitPrice": 18.0000,
+    "UnitsInStock": 39,
+    "UnitsOnOrder": 0,
+    "ReorderLevel": 10,
+    "Discontinued": false
+  },
+  {
+    "ProductID": 2,
+    "ProductName": "Chang",
+    "SupplierID": 1,
+    "CategoryID": 1,
+    "QuantityPerUnit": "24 - 12 oz bottles",
+    "UnitPrice": 19.0000,
+    "UnitsInStock": 17,
+    "UnitsOnOrder": 40,
+    "ReorderLevel": 25,
+    "Discontinued": false
+  }
+]
+```
+
+This uses the [array / string slice](https://jqlang.github.io/jq/manual/#array-string-slice) syntax to grab elements from the array which isthe value of the `value` property. The full syntax is `[<number>:<number>]` but here the first number is omitted, which means it will default to the start of the array (0) inclusive, and go to 2 exclusive, i.e. those elements with index 0 and 1 only. Note that either of these numbers can be negative, which means going backwards from the relevant end of the array.
+
+```json
+
+
+
+
+
+
