@@ -901,10 +901,10 @@ for each of the sub arrays. Let's take the first sub array and see what this doe
 ]
 ```
 
-We can see from the outermost `{ ... }` ([object construction](https://jqlang.github.io/jq/manual/#object-construction)) of the expression that an object will be emitted. And in fact there will only be a single property and value in this object, the values for which are both calculated:
+We can see from the outermost `{ ... }` ([object construction](https://jqlang.github.io/jq/manual/#object-construction)) of the expression that an object will be emitted. And in fact there will only be a single property in this object, the name and value for which are both calculated:
 
-* the property name is the value of the `colour` property of the `first` element in that sub array; in this case, "green"
-* the property value is an array (produced by `map`) of the values of the `name` property of each of the elements; in this case, "apple", "kiwi" and "pear"
+* via `(first.colour)`: the name is the value of the `colour` property of the `first` element in that sub array; in this case, "green"
+* via `map(.name)`: the value is an array (produced by `map`) of the values of the `name` property of each of the elements; in this case, "apple", "kiwi" and "pear"
 
 In other words:
 
