@@ -462,6 +462,8 @@ jq '<the jq expression shown>' available-regions.json
 
 or use ijq and type them into the filter input box.
 
+#### Calculating distinct values
+
 First, let's just list them all; let's just have the value of the `iaasProvider` property from each of the objects. We already know how to do this:
 
 ```jq
@@ -470,7 +472,7 @@ First, let's just list them all; let's just have the value of the `iaasProvider`
 
 This produces a long list that starts like this:
 
-```JSON
+```json
 "AZURE"
 "SAP"
 "SAP"
@@ -478,5 +480,165 @@ This produces a long list that starts like this:
 "SAP"
 "AWS"
 ```
+
+There's a [unique](https://jqlang.github.io/jq/manual/#unique-unique_by) function that "takes as input an array and produces an array of the same elements, in sorted order, with duplicates removed". Sounds good. Let's try it:
+
+```jq
+.datacenters[].iaasProvider | unique
+```
+
+Hmm, we get an error: "Cannot iterate over string ("AZURE")". The problem is that `unique` expects an array as input. And what do we have here? A list of discrete JSON values, each of which are strings. (So this error message makes perfect sense - jq was attempting to call `unique` on each of the string values emitted from `.datacenters[].iaasProvider`, and abended on the first one "AZURE".
+
+> Abend is an old word from my IBM mainframe days and is a verb made from the contraction of "abnormal end".
+
+One way to address this, and feed `unique` what it expects, is to construct an array manually, by using [array construction](https://jqlang.github.io/jq/manual/#array-construction), i.e. by wrapping the `.datacenters[].iaasProvider` in `[ ... ]`.
+
+This:
+
+```jq
+[ .datacenters[].iaasProvider ]
+```
+
+gives us:
+
+```json
+[
+  "AZURE"
+  "SAP"
+  "SAP"
+  "GCP"
+  "SAP"
+  "AWS"
+]
+```
+
+which we can then feed to `unique`:
+
+```jq
+[ .datacenters[].iaasProvider ] | unqiue
+```
+
+which then emits:
+
+```json
+[
+  "AWS"
+  "AZURE"
+  "GCP"
+  "SAP"
+]
+```
+
+This is what we were looking for - a list of the different IaaS providers.
+
+Of course, jq is a wonderfully expressive language, and in the spirit of [TMTOWTDI](https://en.wiktionary.org/wiki/TMTOWTDI) ("There's More Than One Way To Do It", a sentiment, expression & philosphy that originated in the Perl programming community), we can take a slightly different approach using [map](https://jqlang.github.io/jq/manual/#map-map_values):
+
+```jq
+.datacenters | map(.iaasProvider) | unqiue
+```
+
+This produces the same output. As `map` operates on an array, we feed in the value of the `datacenters` property directly to it, rather than use the array/object value iterator (`[]`) to explode the data into multiple values downstream. As `map` not only takes an array as input but produces an array as output, this means that it's an array that reaches `unique` through the final pipe:
+
+```text
+    array    -->       array         -->  array
+.datacenters  |  map(.iaasProvider)   |   unqiue
+```
+
+Let's have a look at another way, using the related [unique_by](https://jqlang.github.io/jq/manual/#unique-unique_by) function, which "will keep only one element for each value obtained by applying the argument":
+
+```jq
+.datacenters | unique_by(.iaasProvider) | map(.iaasProvider)
+```
+
+It's worth trying this out in ijq, to see what the intermediate result is, produced by `.datacenters | unique_by(.iaasProviders)`. If you do, you'll see an array of four elements, each one representing a data centre from a different IaaS provider.
+
+#### Filtering
+
+How about retrieving location information for those data centres from a specific provider? While we don't have definitive geographic data in the data centre objects, we can see that the `displayName` property contains what we can use. Here's an example:
+
+```json
+{
+  "name": "cf-ap21",
+  "displayName": "Singapore - Azure",
+  "region": "ap21",
+  "environment": "cloudfoundry",
+  "iaasProvider": "AZURE",
+  "supportsTrial": true,
+  "provisioningServiceUrl": "https://provisioning-service.cfapps.ap21.hana.ondemand.com",
+  "saasRegistryServiceUrl": "https://saas-manager.cfapps.ap21.hana.ondemand.com",
+  "domain": "ap21.hana.ondemand.com",
+  "isMainDataCenter": true,
+  "geoAccess": "BACKWARD_COMPLIANT_EU_ACCESS",
+  "restricted": false
+}
+```
+
+We can take whatever comes before any " - " divider in that value ("Singapore" in this example).
+
+To filter, we can use the [select](https://jqlang.github.io/jq/manual/#select) function, which will cause JSON data passing through it to be dropped if the expression passed to it does not end up evaluating to `true`.
+
+Taking it step by step, this jq filter:
+
+```jq
+.datacenters[] | select(.iaasProvider == "AWS") | .displayName
+```
+
+gives us this:
+
+```json
+"Europe (Frankfurt) - AWS"
+"Japan (Tokyo)"
+"Brazil (São Paulo)"
+"Australia (Sydney)"
+"South Korea (Seoul) - AWS"
+"Singapore"
+"US East (VA) - AWS"
+"Canada (Montreal)"
+"Europe (Frankfurt)"
+```
+
+Now for a bit of string manipulation, using a regexp-based substitutin, to remove any " - ..." parts:
+
+```jq
+.datacenters[] 
+| select(.iaasProvider == "AWS") 
+| .displayName 
+| sub(" - .+$";"")
+```
+
+> As you can see, this jq filter is getting a little long to be displayed well on a single line so some extra whitespace has been added.
+
+This produces:
+
+```json
+"Europe (Frankfurt)"
+"Japan (Tokyo)"
+"Brazil (São Paulo)"
+"Australia (Sydney)"
+"South Korea (Seoul)"
+"Singapore"
+"US East (VA)"
+"Canada (Montreal)"
+"Europe (Frankfurt)"
+```
+
+Great. Again, invoking TMTOWDI, the last part could have been done another way; if you don't feel comfortable with regular epressions, this would have worked just as well, and produced the same result:
+
+```jq
+.datacenters[] 
+| select(.iaasProvider == "AWS") 
+| .displayName 
+| split(" - ")
+| first
+```
+
+As you can guess, [split](https://jqlang.github.io/jq/manual/#split-1), more specifically `split/1`, will create an array of values from a string split on the value given as argument.
+
+
+
+
+
+
+
 
 
