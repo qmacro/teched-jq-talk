@@ -667,7 +667,7 @@ To properly grasp how this works, it's important to be able to think about the s
 { "name": "kiwi", "colour": "green" }
 { "name": "pear", "colour": "green" }
 { "name": "lemon", "colour": "yellow" }
-```.
+```
 
 > This is the second time we've used data like this. In fact, there's a name for this format, and it's [JSON Lines](https://jsonlines.org/), aka "newline delimited JSON".
 
