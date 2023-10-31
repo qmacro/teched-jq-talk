@@ -945,7 +945,7 @@ Each of these files contains a part of the entire entityset. Let's find out how 
 17
 ```
 
-That makes sense. But it also underlines that each of these files that we need to process has the product entities within that `value` property referenced above. But we can of course use the `--slurp` option again here and then pull out the value of each of the `value` properties (each value is an array), and [add](https://jqlang.github.io/jq/manual/#add) those arrays together to get one array:
+That makes sense. Then again, it also underlines that each of these files that we need to process has the product entities within that `value` property referenced above. But we can of course use the `--slurp` option again here and then pull out the value of each of the `value` properties (each value is an array), and [add](https://jqlang.github.io/jq/manual/#add) those arrays together to get one array:
 
 ```shell
 cat products-*.json | jq --slurp 'map(.value) | add | length'
@@ -1002,7 +1002,7 @@ There's a couple of new jq features used here:
 
 * the [array / string slice](https://jqlang.github.io/jq/manual/#array-string-slice) syntax is `[<number>:<number>]` but here the first number is omitted, which means it will default to the start of the array (0) inclusive, and go to 2 exclusive, i.e. those elements with index 0 and 1 only.
 
-> Either of these numbers can be negative, which means going backwards from the relevant end of the array.
+    > Either of these numbers can be negative, which means going backwards from the relevant end of the array.
 
 Now we have a clean list of products, how about working out the stock value of products, by category? The stock value of any given product is the unit price multiplied by the units in stock.
 
