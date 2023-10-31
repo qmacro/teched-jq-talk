@@ -914,9 +914,11 @@ In other words:
 
 Note that we want the expression `first.colour` to be evaluated, so we need to put it in brackets when using it as a property name in object construction, i.e. `(first.colour)`.
 
-#### Accumulation and calculations
+#### Accumulation and function definitions
 
-To round off, let's grab some classic Northwind product data. From the OData V4 service at [https://services.odata.org/V4/Northwind/](https://services.odata.org/V4/Northwind/), we have [Products](https://services.odata.org/V4/Northwind/Northwind.svc/Products) and [Categories](https://services.odata.org/V4/Northwind/Northwind.svc/Categories). We can request products with their categories like this:
+To round off, let's grab some classic Northwind product data. From the OData V4 service at [https://services.odata.org/V4/Northwind/](https://services.odata.org/V4/Northwind/), we have [Products](https://services.odata.org/V4/Northwind/Northwind.svc/Products) and [Categories](https://services.odata.org/V4/Northwind/Northwind.svc/Categories).
+
+We can request products with their categories like this:
 
 <https://services.odata.org/V4/Northwind/Northwind.svc/Products?$expand=Category>
 
