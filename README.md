@@ -914,14 +914,50 @@ In other words:
 
 Note that we want the expression `first.colour` to be evaluated, so we need to put it in brackets when using it as a property name in object construction, i.e. `(first.colour)`.
 
-#### Calculations and non-JSON output
+#### Accumulation and calculations
 
-To round off, let's grab some classic Northwind product data. From the OData V4 service at [https://services.odata.org/V4/Northwind/](https://services.odata.org/V4/Northwind/), we have the [Products entityset](https://services.odata.org/V4/Northwind/Northwind.svc/Products), which by default is served as `application/json`, saved in a file [northwind-products.json](./northwind-products.json).
+To round off, let's grab some classic Northwind product data. From the OData V4 service at [https://services.odata.org/V4/Northwind/](https://services.odata.org/V4/Northwind/), we have [Products](https://services.odata.org/V4/Northwind/Northwind.svc/Products) and [Categories](https://services.odata.org/V4/Northwind/Northwind.svc/Categories). We can request products with their categories like this:
 
-To get a feel for the data, let's look at the first couple of entities:
+<https://services.odata.org/V4/Northwind/Northwind.svc/Products?$expand=Category>
+
+but notice that the entityset is returned in chunks of 20 entities, with an `@odata.nextLink` property in the payload with information on the token needed to get the next chunk; here's an example:
+
+```json
+"@odata.nextLink": "Products?$expand=Category&$skiptoken=20"
+```
+
+So typically to get all the products (all [77](https://services.odata.org/V4/Northwind/Northwind.svc/Products/$count) of them), we'd need to make multiple calls. And typically we might save the output from each call in a separate file. The simple script [allproducts](./allproducts) does exactly this, producing a list of files thus:
+
+```text
+-rw-r--r-- 1 user user 293288 Oct 31 12:25 products-0.json
+-rw-r--r-- 1 user user 293290 Oct 31 12:25 products-20.json
+-rw-r--r-- 1 user user 293167 Oct 31 12:25 products-40.json
+-rw-r--r-- 1 user user 249433 Oct 31 12:25 products-60.json
+```
+
+Each of these files contains a part of the entire entityset. Let's find out how many entities per file:
 
 ```shell
-; jq '.value[:2]' northwind-products.json
+; cat products-*.json | jq '.value | length'
+20
+20
+20
+17
+```
+
+That makes sense. But it also underlines that each of these files that we need to process has the product entities within that `value` property referenced above. But we can of course use the `--slurp` option again here and then pull out the value of each of the `value` properties (each value is an array), and [add](https://jqlang.github.io/jq/manual/#add) those arrays together to get one array:
+
+```shell
+cat products-*.json | jq --slurp 'map(.value) | add | length'
+77
+```
+
+So now we have a single array to process. Let's modify the last part of that filter to look at the first couple of entries; also, let's get rid of the `Picture` property in the expanded `Category` entity type, as the value is huge (it's an encoded image) and we don't need it:
+
+```shell
+; cat products-*.json \
+  | jq --slurp \
+    'map(.value) | add | map(del(.Category.Picture)) | .[:2]'
 [
   {
     "ProductID": 1,
@@ -933,7 +969,12 @@ To get a feel for the data, let's look at the first couple of entities:
     "UnitsInStock": 39,
     "UnitsOnOrder": 0,
     "ReorderLevel": 10,
-    "Discontinued": false
+    "Discontinued": false,
+    "Category": {
+      "CategoryID": 1,
+      "CategoryName": "Beverages",
+      "Description": "Soft drinks, coffees, teas, beers, and ales"
+    }
   },
   {
     "ProductID": 2,
@@ -945,17 +986,123 @@ To get a feel for the data, let's look at the first couple of entities:
     "UnitsInStock": 17,
     "UnitsOnOrder": 40,
     "ReorderLevel": 25,
-    "Discontinued": false
+    "Discontinued": false,
+    "Category": {
+      "CategoryID": 1,
+      "CategoryName": "Beverages",
+      "Description": "Soft drinks, coffees, teas, beers, and ales"
+    }
   }
 ]
 ```
 
-This uses the [array / string slice](https://jqlang.github.io/jq/manual/#array-string-slice) syntax to grab elements from the array which isthe value of the `value` property. The full syntax is `[<number>:<number>]` but here the first number is omitted, which means it will default to the start of the array (0) inclusive, and go to 2 exclusive, i.e. those elements with index 0 and 1 only. Note that either of these numbers can be negative, which means going backwards from the relevant end of the array.
+There's a couple of new jq features used here:
+
+* the [del](https://jqlang.github.io/jq/manual/#del) builtin can be used to delete properties by specifying their paths
+
+* the [array / string slice](https://jqlang.github.io/jq/manual/#array-string-slice) syntax is `[<number>:<number>]` but here the first number is omitted, which means it will default to the start of the array (0) inclusive, and go to 2 exclusive, i.e. those elements with index 0 and 1 only.
+
+> Either of these numbers can be negative, which means going backwards from the relevant end of the array.
+
+Now we have a clean list of products, how about working out the stock value of products, by category? The stock value of any given product is the unit price multiplied by the units in stock.
+
+Sometimes it's easier to reduce the size of the dataset up front. So let's start by just getting the properties we need, by adding a simple map to the end of the filter we have (replacing the last `map` call as it becomes redundant):
+
+```jq
+map(.value)
+| add
+| map({ UnitsInStock, UnitPrice, category: .Category.CategoryName })
+```
+
+This will give a nice flat list of product and stock info like this (only the first few entries are shown here):
 
 ```json
+[
+  {
+    "UnitsInStock": 39,
+    "UnitPrice": 18.0000,
+    "category": "Beverages"
+  },
+  {
+    "UnitsInStock": 17,
+    "UnitPrice": 19.0000,
+    "category": "Beverages"
+  },
+  {
+    "UnitsInStock": 13,
+    "UnitPrice": 10.0000,
+    "category": "Condiments"
+  }
+]
+```
 
+All we need to do now is use the `group_by` function again and add the stock values together.
 
+Here we can try out a function definition which if nothing else will keep the downstream end of the pipeline a little cleaner, a little less busy. Let's define `stockValue` and then use it in the final object construction:
 
+```jq
+def stockValue: .UnitsInStock * .UnitPrice | round;
+map(.value)
+| add
+| map({ UnitsInStock, UnitPrice, category: .Category.CategoryName })
+| group_by(.category)
+| map({ (first.category): map(stockValue) | add })
+```
 
+This gives us: 
 
+```json
+[
+  {
+    "Beverages": 12481
+  },
+  {
+    "Condiments": 12025
+  },
+  {
+    "Confections": 10391
+  },
+  {
+    "Dairy Products": 11271
+  },
+  {
+    "Grains/Cereals": 5595
+  },
+  {
+    "Meat/Poultry": 5729
+  },
+  {
+    "Produce": 3550
+  },
+  {
+    "Seafood": 13011
+  }
+]
+```
 
+which looks OK, but we can make cleaner and more succinct by in fact adding all the individual objects together:
+
+```jq
+def stockValue: .UnitsInStock * .UnitPrice | round;
+map(.value)
+| add
+| map({ UnitsInStock, UnitPrice, category: .Category.CategoryName })
+| group_by(.category)
+| map({ (first.category): map(stockValue) | add })
+| add
+```
+
+Because `add` does the right thing on objects too, the result is what we would hope for, i.e.:
+
+```json
+{
+  "Beverages": 12481,
+  "Condiments": 12025,
+  "Confections": 10391,
+  "Dairy Products": 11271,
+  "Grains/Cereals": 5595,
+  "Meat/Poultry": 5729,
+  "Produce": 3550,
+  "Seafood": 13011
+}
+```

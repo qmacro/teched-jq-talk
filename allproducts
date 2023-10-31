@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+declare basepath="https://services.odata.org/V4/Northwind/Northwind.svc"
+
+for skiptoken in $(seq 0 20 60); do
+    curl \
+        -o "products-$skiptoken.json" \
+        --fail \
+        --silent \
+        --url $basepath'/Products?$expand=Category&$skiptoken='$skiptoken
+
+done
