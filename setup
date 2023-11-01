@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+read -rsp 'Password: ' PASSWORD
+
+rm -f ~/.local/share/ijq/history
+
+btp login \
+    --url https://cpcli.cf.eu10.hana.ondemand.com \
+    --user dj.adams@sap.com \
+    --password "$PASSWORD"
+
+cf login \
+    -a https://api.cf.eu10.hana.ondemand.com \
+    -u dj.adams@sap.com \
+    -p "$PASSWORD" \
+    -o dj-adams-free-tier-ajjk4v6u-org \
+    -s dev
+
+gh auth status
