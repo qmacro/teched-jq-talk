@@ -226,7 +226,7 @@ It's easy to create a reduced object with just a couple of properties:
 We can also add new properties. Extending the previous example:
 
 ```shell
-; cf curl /v3/info | jq '{ build, version, answer: .version + 10 }'
+; cf curl /v3/info | jq '{ build, version, answer: (.version + 10) }'
 {
   "build": "v32.11.0",
   "version": 32,
