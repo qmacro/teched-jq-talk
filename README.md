@@ -114,7 +114,7 @@ And when emitting such JSON values, it will, again, unless you tell it otherwise
 
 ## A simple start
 
-Let's start with some output from the Cloud Foundry CLI, cf. With this CLI you can also call [CF APIs](https://v3-apidocs.cloudfoundry.org/version/3.149.0/index.html). The responses are in JSON format. Here's an example:
+Let's start with some output from the Cloud Foundry CLI, cf. With this CLI you can also call [CF APIs](https://v3-apidocs.cloudfoundry.org/version/3.149.0/index.html). The responses are in JSON format. Here's an example of retrieving simple [platform information](https://v3-apidocs.cloudfoundry.org/version/3.150.0/index.html#info):
 
 ```shell
 cf curl /v3/info
