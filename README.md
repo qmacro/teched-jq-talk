@@ -515,7 +515,7 @@ gives us:
 which we can then feed to `unique`:
 
 ```jq
-[ .datacenters[].iaasProvider ] | unqiue
+[ .datacenters[].iaasProvider ] | unique
 ```
 
 which then emits:
