@@ -1108,3 +1108,20 @@ Because `add` does the right thing on objects too, the result is what we would h
   "Seafood": 13011
 }
 ```
+
+## Appendix
+
+The [products.json](products.json) file was created as a combination of the `products-*.json` files, for use in a Devtoberfest 2024 bug hunt. It was created like this:
+
+```shell
+jq --slurp \
+  'map(.value)|add|sort_by(.ProductID)|map(del(.Category.Picture))' \
+  products-*.json
+```
+
+In other words:
+
+* map over each of entries in the array that contains each file's content (due to the `--slurp` option), picking out just the `value` property (which is an array of product objects) from each one
+* combine all the product objects into a single array (with `add`)
+* sort the elements of that array by the `ProductID` property's value
+* oh yes and get rid of the huge encoded category picture property in each one
